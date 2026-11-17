@@ -1,0 +1,52 @@
+name: Build Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Download repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Create Android project
+        run: |
+          mkdir -p /tmp/smc-source
+          cp lib/main.dart /tmp/smc-source/main.dart
+          cp pubspec.yaml /tmp/smc-source/pubspec.yaml
+          flutter create --platforms=android --org=com.smcdemo --project-name=smc_trader .
+          cp /tmp/smc-source/main.dart lib/main.dart
+          cp /tmp/smc-source/pubspec.yaml pubspec.yaml
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build installable demo APK
+        run: flutter build apk --debug
+
+      - name: Save APK for download
+        uses: actions/upload-artifact@v4
+        with:
+          name: SMC-Trader-Demo-APK
+          path: build/app/outputs/flutter-apk/app-debug.apk
+          if-no-files-found: error
